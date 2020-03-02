@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "598757370639",
+    "firebase_url": "https://database-bc700.firebaseio.com",
+    "project_id": "database-bc700",
+    "storage_bucket": "database-bc700.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598757370639:android:79876c0b5ce86be0d16c7a",
+        "android_client_info": {
+          "package_name": "com.sputikam.spinal_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "598757370639-0hk20p5gunv83fgak79qhe81pb8psu16.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sputikam.spinal_flutter",
+            "certificate_hash": "2958c1b2df6579152f8959f21b68cfa03c21a538"
+          }
+        },
+        {
+          "client_id": "598757370639-d1q9p2e9u9lubvubtvaniil9jvhngqs4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBnB94fykzSIuFwDo4pegIRS2088OGE34"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "598757370639-d1q9p2e9u9lubvubtvaniil9jvhngqs4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
