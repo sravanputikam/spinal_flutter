@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:spinal_flutter/constants.dart';
 import 'login_screen.dart';
 import 'registration_screen.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
@@ -58,7 +59,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ),
                 ),
                 TypewriterAnimatedTextKit(
-                  text: ['S.P.I.N.A.L'],
+                  text: [kAppName],
                   textStyle: TextStyle(
                     fontSize: 30.0,
                     fontWeight: FontWeight.w900,

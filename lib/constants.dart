@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 
+const String kAppName = 'S.P.I.N.A.L';
+
+const Map kDrawerItems = {
+  'Recipes': 'images/recipes_logo.png',
+  'Allergies': 'images/allergy_logo.png',
+  'Meal': 'images/ready_eat_logo.png'
+};
+
 const kSendButtonTextStyle = TextStyle(
   color: Colors.lightBlueAccent,
   fontWeight: FontWeight.bold,

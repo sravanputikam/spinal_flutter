@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'registration_screen.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:spinal_flutter/components/rounded_button.dart';
+import 'package:spinal_flutter/widgets/customDrawer.dart';
 
 class InventoryScreen extends StatefulWidget {
   static const String id = 'inventory_screen';
@@ -16,16 +18,16 @@ class _InventoryScreenState extends State<InventoryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.amber,
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-            expandedHeight: 220.0,
+            expandedHeight: 250.0,
             floating: true,
             pinned: true,
             snap: true,
             elevation: 50,
-            backgroundColor: Colors.pink,
+            backgroundColor: Colors.amber,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
               title: Text(
@@ -37,28 +39,45 @@ class _InventoryScreenState extends State<InventoryScreen>
               ),
             ),
           ),
-          SliverList(delegate: new SliverChildListDelegate(_buildList(50))),
+          SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Card(
+                  color: Colors.white,
+                  elevation: 10.0,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      FlutterLogo(
+                        size: 125.0,
+                      ),
+                      Text(
+                        'Carrots',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 15.0,
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              },
+              childCount: 30,
+            ),
+          ),
         ],
       ),
-      drawer: ClipRRect(
-        borderRadius: BorderRadius.only(
-            bottomRight: Radius.circular(30.0),
-            topRight: Radius.circular(30.0)),
-        child: Drawer(),
+      drawer: SafeArea(
+        child: ClipRRect(
+          borderRadius: BorderRadius.only(
+              bottomRight: Radius.circular(30.0),
+              topRight: Radius.circular(30.0)),
+          child: CustomDrawer(),
+        ),
       ),
     );
-  }
-
-  List _buildList(int count) {
-    List<Widget> listItems = List();
-
-    for (int i = 0; i < count; i++) {
-      listItems.add(new Padding(
-          padding: new EdgeInsets.all(20.0),
-          child: new Text('Item ${i.toString()}',
-              style: new TextStyle(fontSize: 25.0))));
-    }
-
-    return listItems;
   }
 }
