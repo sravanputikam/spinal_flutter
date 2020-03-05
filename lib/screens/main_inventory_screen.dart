@@ -23,9 +23,15 @@ class _InventoryScreenState extends State<InventoryScreen>
         slivers: <Widget>[
           SliverAppBar(
             expandedHeight: 250.0,
-            floating: true,
+            floating: false,
             pinned: true,
             snap: true,
+            actions: <Widget>[
+              IconButton(
+                icon: Icon(Icons.exit_to_app),
+                onPressed: null,
+              ),
+            ],
             elevation: 50,
             backgroundColor: Colors.amber,
             flexibleSpace: FlexibleSpaceBar(
