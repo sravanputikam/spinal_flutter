@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:spinal_flutter/components/rounded_button.dart';
 import 'package:spinal_flutter/constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,6 +7,7 @@ import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:flutter_auth_buttons/flutter_auth_buttons.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:spinal_flutter/screens/main_inventory_screen.dart';
+import 'package:spinal_flutter/services/auth.dart';
 
 class LoginScreen extends StatefulWidget {
   static const String id = 'login_screen';
@@ -20,27 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String email;
   String password;
-
-  Future<String> signInWithGoogle() async {
-    final GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
-    final GoogleSignInAuthentication googleSignInAuthentication =
-        await googleSignInAccount.authentication;
-
-    final AuthCredential credential = GoogleAuthProvider.getCredential(
-      accessToken: googleSignInAuthentication.accessToken,
-      idToken: googleSignInAuthentication.idToken,
-    );
-    final AuthResult authResult = await _auth.signInWithCredential(credential);
-    final FirebaseUser user = authResult.user;
-
-    assert(!user.isAnonymous);
-    assert(await user.getIdToken() != null);
-
-    final FirebaseUser currentUser = await _auth.currentUser();
-    assert(user.uid == currentUser.uid);
-
-    return 'signInWithGoogle succeeded: $user';
-  }
 
   void signOutGoogle() async {
     await googleSignIn.signOut();
@@ -104,26 +85,37 @@ class _LoginScreenState extends State<LoginScreen> {
                   setState(() {
                     showSpinner = true;
                   });
-                  try {
-                    final user = await _auth.signInWithEmailAndPassword(
-                        email: email, password: password);
-                    if (user != null) {
-                      Navigator.pushNamed(context, InventoryScreen.id);
-                    }
 
+                  try {
+                    FirebaseUser result =
+                        await Provider.of<AuthService>(context, listen: false)
+                            .loginUser(email: email, password: password);
                     setState(() {
                       showSpinner = false;
                     });
-                  } catch (e) {
-                    print(e);
+                    print(result);
+                    Navigator.of(context).pop();
+//                    Navigator.pushNamed(context, InventoryScreen.id)
+                  } on AuthException catch (error) {
+                    return _buildErrorDialog(context, error.message);
+                  } on Exception catch (error) {
+                    return _buildErrorDialog(context, error.toString());
                   }
                 },
               ),
               GoogleSignInButton(
-                onPressed: () {
-                  signInWithGoogle().whenComplete(() {
-                    Navigator.pushNamed(context, InventoryScreen.id);
+                onPressed: () async {
+                  setState(() {
+                    showSpinner = true;
                   });
+                  FirebaseUser result =
+                      await Provider.of<AuthService>(context, listen: false)
+                          .signInWithGoogle();
+                  setState(() {
+                    showSpinner = false;
+                  });
+                  print(result);
+                  Navigator.of(context).pop();
                 },
                 borderRadius: 20.0,
               ),
@@ -133,4 +125,23 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
+
+Future _buildErrorDialog(BuildContext context, _message) {
+  return showDialog(
+    builder: (context) {
+      return AlertDialog(
+        title: Text('Error Message'),
+        content: Text(_message),
+        actions: <Widget>[
+          FlatButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              })
+        ],
+      );
+    },
+    context: context,
+  );
 }

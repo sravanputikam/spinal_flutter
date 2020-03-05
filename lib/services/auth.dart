@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/cupertino.dart';
 
 class AuthService with ChangeNotifier {
@@ -23,9 +23,9 @@ class AuthService with ChangeNotifier {
   // wrapping the firebase calls
   Future createUser(
       {String firstName,
-        String lastName,
-        String email,
-        String password}) async {
+      String lastName,
+      String email,
+      String password}) async {
     var r = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password);
 
@@ -47,8 +47,31 @@ class AuthService with ChangeNotifier {
       // since something changed, let's notify the listeners...
       notifyListeners();
       return result.user;
-    }  catch (e) {
+    } catch (e) {
       throw new AuthException(e.code, e.message);
     }
+  }
+
+  Future<FirebaseUser> signInWithGoogle() async {
+    final GoogleSignIn googleSignIn = GoogleSignIn();
+
+    final GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
+    final GoogleSignInAuthentication googleSignInAuthentication =
+        await googleSignInAccount.authentication;
+
+    final AuthCredential credential = GoogleAuthProvider.getCredential(
+      accessToken: googleSignInAuthentication.accessToken,
+      idToken: googleSignInAuthentication.idToken,
+    );
+    final AuthResult authResult = await _auth.signInWithCredential(credential);
+    final FirebaseUser user = authResult.user;
+
+    assert(!user.isAnonymous);
+    assert(await user.getIdToken() != null);
+
+    final FirebaseUser currentUser = await _auth.currentUser();
+    assert(user.uid == currentUser.uid);
+
+    return currentUser;
   }
 }

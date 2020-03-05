@@ -1,13 +1,19 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:spinal_flutter/services/auth.dart';
 import 'login_screen.dart';
 import 'registration_screen.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:spinal_flutter/components/rounded_button.dart';
 import 'package:spinal_flutter/widgets/customDrawer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class InventoryScreen extends StatefulWidget {
   static const String id = 'inventory_screen';
+  final FirebaseUser currentUser;
+
+  InventoryScreen(this.currentUser);
 
   @override
   _InventoryScreenState createState() => _InventoryScreenState();
@@ -15,6 +21,12 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen>
     with SingleTickerProviderStateMixin {
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,11 +37,13 @@ class _InventoryScreenState extends State<InventoryScreen>
             expandedHeight: 250.0,
             floating: false,
             pinned: true,
-            snap: true,
             actions: <Widget>[
               IconButton(
                 icon: Icon(Icons.exit_to_app),
-                onPressed: null,
+                onPressed: () async {
+                  await Provider.of<AuthService>(context, listen: false)
+                      .logout();
+                },
               ),
             ],
             elevation: 50,
