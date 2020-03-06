@@ -1,10 +1,11 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:spinal_flutter/constants.dart';
+import 'package:spinal_flutter/screens/allergies_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
-  const CustomDrawer({
-    Key key,
-  }) : super(key: key);
+  DatabaseReference database;
+  CustomDrawer(this.database);
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +40,13 @@ class CustomDrawer extends StatelessWidget {
                 DrawerIcons(
                   item: 'Allergies',
                   image: kDrawerItems['Allergies'],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => AllergyScreen(database)),
+                    );
+                  },
                 ),
                 DrawerIcons(
                   item: 'Meal Prep',
@@ -54,19 +62,27 @@ class CustomDrawer extends StatelessWidget {
 }
 
 class DrawerIcons extends StatelessWidget {
-  DrawerIcons({@required this.item, @required this.image});
+  DrawerIcons({
+    @required this.item,
+    @required this.image,
+    @required this.onTap,
+  });
   final String item;
   final image;
+  final onTap;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        CircleAvatar(
-          backgroundColor: Colors.white,
-          radius: 25.0,
-          backgroundImage: AssetImage(image),
+        GestureDetector(
+          onTap: onTap,
+          child: CircleAvatar(
+            backgroundColor: Colors.white,
+            radius: 25.0,
+            backgroundImage: AssetImage(image),
+          ),
         ),
         Text(
           item,
