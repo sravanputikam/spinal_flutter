@@ -4,7 +4,7 @@ import 'package:spinal_flutter/constants.dart';
 import 'package:spinal_flutter/screens/allergies_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
-  DatabaseReference database;
+  final DatabaseReference database;
   CustomDrawer(this.database);
 
   @override
@@ -36,6 +36,7 @@ class CustomDrawer extends StatelessWidget {
                 DrawerIcons(
                   item: 'Recipes',
                   image: kDrawerItems['Recipes'],
+                  onTap: () {},
                 ),
                 DrawerIcons(
                   item: 'Allergies',
@@ -51,6 +52,7 @@ class CustomDrawer extends StatelessWidget {
                 DrawerIcons(
                   item: 'Meal Prep',
                   image: kDrawerItems['Meal'],
+                  onTap: () {},
                 ),
               ],
             ),

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:spinal_flutter/components/rounded_button.dart';
 import 'package:spinal_flutter/constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:flutter_auth_buttons/flutter_auth_buttons.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:spinal_flutter/screens/login_screen.dart';
 import 'package:spinal_flutter/screens/main_inventory_screen.dart';
+import 'package:spinal_flutter/services/auth.dart';
+import 'package:spinal_flutter/validators.dart';
 
 class RegistrationScreen extends StatefulWidget {
   static const String id = 'registration_screen';
@@ -16,90 +20,178 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final _auth = FirebaseAuth.instance;
   final GoogleSignIn googleSignIn = GoogleSignIn();
-  bool showSpinner = false;
-  String email;
-  String password;
+  String _errorMessage;
+  bool _isLoginForm;
+  bool _isLoading;
+  final _formKey = new GlobalKey<FormState>();
+
+  String _email;
+  String _password;
+  String _confirmpwd;
+  String _first;
+  String _last;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    _errorMessage = "";
+    _isLoading = false;
+    _isLoginForm = true;
+    super.initState();
+  }
+
+  void resetForm() {
+    _formKey.currentState.reset();
+    _errorMessage = "";
+  }
+
+  void toggleFormMode() {
+    resetForm();
+    setState(() {
+      _isLoginForm = !_isLoginForm;
+    });
+    Navigator.popAndPushNamed(context, LoginScreen.id);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: ModalProgressHUD(
-        inAsyncCall: showSpinner,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Flexible(
-                child: Hero(
-                  tag: 'logo',
-                  child: Container(
-                    height: 200.0,
-                    child: FlutterLogo(
-                      size: 100.0,
-                    ),
-                  ),
+      appBar: AppBar(
+        elevation: 0.0,
+        title: Text('Register'),
+        centerTitle: true,
+      ),
+      body: Stack(children: [
+        Container(
+          padding: EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              scrollDirection: Axis.vertical,
+              shrinkWrap: true,
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(
+                      labelText: 'First Name*', hintText: "John"),
+                  validator: (value) =>
+                      value.isEmpty ? 'First Name can\'t be empty' : null,
+                  onSaved: (value) => _first = value.trim(),
                 ),
-              ),
-              SizedBox(
-                height: 30.0,
-              ),
-              TextField(
-                keyboardType: TextInputType.emailAddress,
-                textAlign: TextAlign.center,
-                onChanged: (value) {
-                  email = value;
-                },
-                decoration:
-                    kTextFieldDecoration.copyWith(hintText: 'Enter your email'),
-              ),
-              SizedBox(
-                height: 8.0,
-              ),
-              TextField(
-                obscureText: true,
-                textAlign: TextAlign.center,
-                onChanged: (value) {
-                  password = value;
-                },
-                decoration: kTextFieldDecoration.copyWith(
-                    hintText: 'Enter your password'),
-              ),
-              SizedBox(
-                height: 24.0,
-              ),
-              RoundedButton(
-                title: 'Register',
-                colour: Colors.blueAccent,
-                onPressed: () async {
-                  setState(() {
-                    showSpinner = true;
-                  });
-                  try {
-                    final newUser = await _auth.createUserWithEmailAndPassword(
-                        email: email, password: password);
-                    if (newUser != null) {
-                      Navigator.pushNamed(context, InventoryScreen.id);
-                    }
-
+                TextFormField(
+                  decoration:
+                      InputDecoration(labelText: 'Last Name*', hintText: "Doe"),
+                  validator: (value) =>
+                      value.isEmpty ? 'Last Name can\'t be empty' : null,
+                  onSaved: (value) => _last = value.trim(),
+                ),
+                TextFormField(
+                  decoration: InputDecoration(
+                      labelText: 'Email*', hintText: "john.doe@gmail.com"),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: emailValidator,
+                  onSaved: (value) => _email = value.trim(),
+                ),
+                TextFormField(
+                  decoration: InputDecoration(
+                      labelText: 'Password*', hintText: "********"),
+                  obscureText: true,
+                  validator: pwdValidator,
+                  onSaved: (value) => _password = value.trim(),
+                ),
+                TextFormField(
+                  decoration: InputDecoration(
+                      labelText: 'Confirm Password*', hintText: "********"),
+                  obscureText: true,
+                  validator: pwdValidator,
+                  onSaved: (value) => _confirmpwd = value.trim(),
+                ),
+                RoundedButton(
+                  title: "Register",
+                  colour: Colors.lightBlueAccent,
+                  onPressed: () async {
                     setState(() {
-                      showSpinner = false;
+                      _errorMessage = "";
+                      _isLoading = true;
                     });
-                  } catch (e) {
-                    print(e);
-                  }
-                },
-              ),
-              GoogleSignInButton(
-                onPressed: () {},
-                borderRadius: 20.0,
-              ),
-            ],
+                    try {
+                      if (validateAndSave(_formKey)) {
+                        if (_password == _confirmpwd) {
+                          FirebaseUser result = await Provider.of<AuthService>(
+                                  context,
+                                  listen: false)
+                              .createUser(
+                                  email: _email,
+                                  password: _password,
+                                  firstName: _first,
+                                  lastName: _last);
+                          setState(() {
+                            _isLoading = false;
+                          });
+                          print(result);
+                          Navigator.of(context).pop();
+//                    Navigator.pushNamed(context, InventoryScreen.id)
+                        } else {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                          showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text("Error"),
+                                  content: Text("The passwords do not match"),
+                                  actions: <Widget>[
+                                    FlatButton(
+                                      child: Text("Close"),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    )
+                                  ],
+                                );
+                              });
+                        }
+                      } else {
+                        setState(() {
+                          _isLoading = false;
+                        });
+                      }
+                    } catch (e) {
+                      print('Error: $e');
+                      setState(() {
+                        _isLoading = false;
+                        _errorMessage = e.message;
+                        _formKey.currentState.reset();
+                      });
+                    }
+                  },
+                ),
+                GoogleSignInButton(
+                  text: 'Sign up with Google',
+                  onPressed: () async {
+                    setState(() {
+                      _isLoading = true;
+                    });
+                    FirebaseUser result =
+                        await Provider.of<AuthService>(context, listen: false)
+                            .signInWithGoogle();
+                    setState(() {
+                      _isLoading = false;
+                    });
+                    print(result);
+                    Navigator.of(context).pop();
+                  },
+                  borderRadius: 20.0,
+                ),
+                showErrorMessage(_errorMessage),
+                showSecondaryButton(_isLoading, toggleFormMode),
+              ],
+            ),
           ),
         ),
-      ),
+        showCircularProgress(_isLoading)
+      ]),
     );
   }
 }

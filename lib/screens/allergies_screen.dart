@@ -66,9 +66,9 @@ class _AllergyScreen extends State<AllergyScreen> {
   deleteAllergen(String allergy, var key, int index) {
     _database.reference().child("Allergies").child(key).remove().then((_) {
       print("Delete $allergy successful");
+      _allergyKeys.remove(key);
       setState(() {
-        _allergenList.removeAt(index);
-        _allergyKeys.removeAt(index);
+        _allergenList.remove(allergy);
       });
     });
   }
@@ -84,8 +84,8 @@ class _AllergyScreen extends State<AllergyScreen> {
                 new Expanded(
                     child: new TextField(
                   controller: _textEditingController,
-                  autofocus: true,
-                  decoration: new InputDecoration(
+                  autofocus: false,
+                  decoration: InputDecoration(
                     labelText: 'Add new allergen',
                   ),
                 ))
@@ -144,6 +144,9 @@ class _AllergyScreen extends State<AllergyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Colors.white,
+        appBar: new AppBar(
+          title: new Text('Allergies'),
+        ),
         body: showAllergyList(),
         floatingActionButton: FloatingActionButton(
           onPressed: () {

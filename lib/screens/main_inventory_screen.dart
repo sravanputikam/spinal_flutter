@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:drag_select_grid_view/drag_select_grid_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:spinal_flutter/services/auth.dart';
 import 'package:spinal_flutter/widgets/customDrawer.dart';
@@ -15,13 +17,15 @@ FirebaseUser user;
 
 class InventoryScreen extends StatefulWidget {
   static const String id = 'inventory_screen';
-  final FirebaseUser currentUser;
+  final currentUser;
 
   InventoryScreen(this.currentUser);
 
   @override
   _InventoryScreenState createState() => _InventoryScreenState();
 }
+
+enum add { barcode, camera }
 
 class _InventoryScreenState extends State<InventoryScreen>
     with SingleTickerProviderStateMixin {
@@ -31,6 +35,9 @@ class _InventoryScreenState extends State<InventoryScreen>
   StreamSubscription<Event> _onChangedSubscription;
   StreamSubscription<Event> _onDeletedSubscription;
   AnimationController controller;
+  final controllerGrid = DragSelectGridViewController();
+  bool selected = false;
+
   Animation animation;
   List<Item> _itemsList;
 
@@ -46,15 +53,16 @@ class _InventoryScreenState extends State<InventoryScreen>
     controller.addListener(() {
       setState(() {});
     });
+    controllerGrid.addListener(scheduleRebuild);
     userUID = widget.currentUser.uid;
+//    userUID = "a1ah0KnneZg75X0dSJSXBdTtCFr1";
     _database = FirebaseDatabase.instance.reference().child(userUID);
     _database.keepSynced(true);
-//    //_database.once().then((DataSnapshot snapshot) {
-//      print('Connected to second database and read ${snapshot.value}');
-//    });
     _onAddedSubscription = _database.onChildAdded.listen((onEntryAdded));
     _onDeletedSubscription = _database.onChildRemoved.listen((onEntryRemoved));
   }
+
+  void scheduleRebuild() => setState(() {});
 
   @override
   void dispose() {
@@ -97,87 +105,84 @@ class _InventoryScreenState extends State<InventoryScreen>
 //    }
 //  }
 
-//  deleteItem(String todoId, int index) {
-//    _database.reference().child("todo").child(todoId).remove().then((_) {
-//      print("Delete $todoId successful");
-//      setState(() {
-//        _todoList.removeAt(index);
-//      });
-//    });
+  deleteItem(String itemName, int index) {
+    _database.child(itemName).remove().then((_) {
+      print("Delete $itemName successful");
+      setState(() {
+        _itemsList.removeAt(index);
+      });
+    });
+  }
+
+  checkSelected() {
+    List<Widget> actions = List();
+    if (!selected) {
+      actions.add(
+        PopupMenuButton(
+          onSelected: (add result) {
+            print(result);
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<add>>[
+            const PopupMenuItem<add>(
+              value: add.barcode,
+              child: Text('Add item using barcode'),
+            ),
+            const PopupMenuItem<add>(
+              value: add.camera,
+              child: Text('Add item using picture'),
+            ),
+          ],
+          icon: IconButton(
+            icon: Icon(
+              Icons.add,
+              size: 30.0,
+              color: Colors.black,
+            ),
+            onPressed: null,
+          ),
+          elevation: 10.0,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
+        ),
+      );
+      actions.add(
+        IconButton(
+          icon: Icon(Icons.exit_to_app),
+          onPressed: () async {
+            await Provider.of<AuthService>(context, listen: false).logout();
+          },
+        ),
+      );
+    } else {
+      actions.add(
+        IconButton(
+          icon: Icon(Icons.delete),
+          onPressed: () {},
+        ),
+      );
+    }
+    return actions;
+  }
+
+//  RelativeRect menuPosition(BuildContext c) {
+//    final RenderSliver bar = c.findRenderObject();
+//    final RenderBox overlay = Overlay.of(c).context.findRenderObject();
+//    final RelativeRect position = RelativeRect.fromRect(
+//      Rect.fromPoints(
+//        bar.localToGlobal(bar.size.bottomRight(Offset.zero), ancestor: overlay),
+//        bar.localToGlobal(bar.size.bottomRight(Offset.zero), ancestor: overlay),
+//      ),
+//      Offset.zero & overlay.size,
+//    );
+//    return position;
 //  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.amber,
+      backgroundColor: Colors.amber[50],
       body: CustomScrollView(
-        slivers: <Widget>[
-          SliverAppBar(
-            expandedHeight: 250.0,
-            floating: false,
-            pinned: true,
-            actions: <Widget>[
-              IconButton(
-                icon: Icon(Icons.exit_to_app),
-                onPressed: () async {
-                  await Provider.of<AuthService>(context, listen: false)
-                      .logout();
-                },
-              ),
-            ],
-            elevation: 50,
-            backgroundColor: Colors.amber,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: true,
-              title: Text(
-                'Current Inventory',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.0,
-                ),
-              ),
-            ),
-          ),
-          SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                Uint8List image = base64.decode(_itemsList[index].image);
-                String itemName = _itemsList[index].itemName;
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              ItemInformation(_itemsList[index])),
-                    );
-                  },
-                  child: Card(
-                    color: Colors.white,
-                    elevation: 10.0,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Hero(
-                          tag: itemName,
-                          child: Container(
-                            child: Image.memory(image),
-                            width: 150,
-                            height: 150,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-              childCount: _itemsList.length,
-            ),
-          ),
-        ],
+        slivers: _itemsList.isEmpty ? EmptyWidget() : buildCustomScrollView(),
       ),
       drawer: SafeArea(
         child: ClipRRect(
@@ -188,5 +193,132 @@ class _InventoryScreenState extends State<InventoryScreen>
         ),
       ),
     );
+  }
+
+//
+  List<Widget> buildCustomScrollView() {
+    return <Widget>[
+      SliverAppBar(
+        expandedHeight: 250.0,
+        floating: false,
+        pinned: true,
+        actions: checkSelected(),
+        elevation: 50,
+        backgroundColor: Colors.amber[50],
+        flexibleSpace: FlexibleSpaceBar(
+          centerTitle: true,
+          title: Text(
+            'Current Inventory',
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 16.0,
+            ),
+          ),
+        ),
+      ),
+      SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            Uint8List image = base64.decode(_itemsList[index].image);
+            String itemName = _itemsList[index].itemName;
+
+            return _itemsList.isNotEmpty
+                ? GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                ItemInformation(_itemsList[index])),
+                      );
+                    },
+                    onLongPress: () {
+                      deleteItem(itemName, index);
+
+//                    print("How are you");
+//                    final result = await showMenu(
+//                      context: context,
+//                      items: <PopupMenuEntry>[
+//                        PopupMenuItem(
+//                          value: index,
+//                          child: Row(
+//                            children: <Widget>[
+//                              Icon(Icons.delete),
+//                              Text("Delete"),
+//                            ],
+//                          ),
+//                        )
+//                      ],
+//                      position: menuPosition(context),
+//                    );
+//                    print(result);
+                    },
+                    child: Card(
+                      color: Colors.white,
+                      elevation: 10.0,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Hero(
+                            tag: itemName,
+                            child: Container(
+                              child: Image.memory(image),
+                              width: 150,
+                              height: 150,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Text('You have no food at your home. Go to grocery store');
+          },
+          childCount: _itemsList.length,
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> EmptyWidget() {
+    return <Widget>[
+      SliverAppBar(
+        expandedHeight: 250.0,
+        floating: false,
+        pinned: true,
+        actions: checkSelected(),
+        elevation: 50,
+        backgroundColor: Colors.amber[50],
+        flexibleSpace: FlexibleSpaceBar(
+          centerTitle: true,
+          title: Text(
+            'Current Inventory',
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 16.0,
+            ),
+          ),
+        ),
+      ),
+      SliverList(
+        delegate: SliverChildListDelegate(
+          [
+            Container(
+              child: Image.asset("images/groceries_shopping_logo.png"),
+            ),
+            Text(
+              'You need to go Shopping',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Colors.brown,
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    ];
   }
 }

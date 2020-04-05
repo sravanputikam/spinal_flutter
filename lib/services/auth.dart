@@ -54,7 +54,7 @@ class AuthService with ChangeNotifier {
 
   Future<FirebaseUser> signInWithGoogle() async {
     final GoogleSignIn googleSignIn = GoogleSignIn();
-
+    // google sign in pops up and waits for user to choose account
     final GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
     final GoogleSignInAuthentication googleSignInAuthentication =
         await googleSignInAccount.authentication;
@@ -64,6 +64,7 @@ class AuthService with ChangeNotifier {
       idToken: googleSignInAuthentication.idToken,
     );
     final AuthResult authResult = await _auth.signInWithCredential(credential);
+    //once user has chosen the account a new firebase user is created to check if the user exists
     final FirebaseUser user = authResult.user;
 
     assert(!user.isAnonymous);
@@ -71,7 +72,7 @@ class AuthService with ChangeNotifier {
 
     final FirebaseUser currentUser = await _auth.currentUser();
     assert(user.uid == currentUser.uid);
-
+    notifyListeners();
     return currentUser;
   }
 }
