@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:spinal_flutter/screens/welcome_screen.dart';
 import 'package:spinal_flutter/screens/login_screen.dart';
 import 'package:spinal_flutter/screens/registration_screen.dart';
@@ -21,19 +22,25 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: Colors.white,
+        primaryColor: Colors.red[400],
+        accentColor: Colors.redAccent,
       ),
-      home: CustomSplash(
-        imagePath: 'images/google_logo.png',
-        backGroundColor: Colors.white,
-        animationEffect: 'zoom-in',
-        duration: 2500,
-        logoSize: 200,
-        home: buildFutureBuilder(context),
-      ),
+      home: buildFutureBuilder(context),
+//      home: CustomSplash(
+//        imagePath: 'images/google_logo.png',
+//        backGroundColor: Colors.white,
+//        animationEffect: 'zoom-in',
+//        duration: 2500,
+//        logoSize: 200,
+//        home: buildFutureBuilder(context),
+//      ),
       routes: {
         WelcomeScreen.id: (context) => WelcomeScreen(),
         LoginScreen.id: (context) => LoginScreen(),
@@ -73,11 +80,10 @@ class MyApp extends StatelessWidget {
 class LoadingCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        child: CircularProgressIndicator(),
-        alignment: Alignment(0.0, 0.0),
-      ),
+    return Container(
+      color: Colors.white,
+      child: Image.asset('images/splash.png'),
+      alignment: Alignment(0.0, 0.0),
     );
   }
 }

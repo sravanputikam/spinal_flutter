@@ -5,23 +5,31 @@ class Item {
   String itemName;
   String quantity;
   String userId;
-  String expiry;
+  dynamic nutrients;
+  dynamic purchaseDate;
+  dynamic expiry;
   String key;
   String image;
   Item(this.userId);
 
   Item.fromSnapshot(DataSnapshot snapshot)
-      : ingredients = snapshot.value["Ingredients"],
-        image = snapshot.value['image'],
+      : image = snapshot.value['image'],
         expiry = snapshot.value['Expiration Date'],
-        itemName = snapshot.value["Item Name"];
+        nutrients = snapshot.value['Nutrition List'],
+        purchaseDate = snapshot.value['Purchase Date'],
+        quantity = snapshot.value['Quantity'],
+        itemName = snapshot.value["Item Name"],
+        ingredients = snapshot.value["Ingredients"];
 
   toJson() {
     return {
       "itemName": itemName,
-      "ingredients": ingredients,
       "image": image,
       'expiry': expiry,
+      'nutrionList': nutrients,
+      'purchaseDate': purchaseDate,
+      'quantity': quantity,
+      "ingredients": ingredients,
     };
   }
 }

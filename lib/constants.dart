@@ -5,7 +5,9 @@ const String kAppName = 'S.P.I.N.A.L';
 const Map kDrawerItems = {
   'Recipes': 'images/recipes_logo.png',
   'Allergies': 'images/allergy_logo.png',
-  'Meal': 'images/ready_eat_logo.png'
+  'Meal': 'images/ready_eat_logo.png',
+  'GroceryList': 'images/grocery_list.png',
+  'Favorites': 'images/favorites.png',
 };
 
 const kSendButtonTextStyle = TextStyle(

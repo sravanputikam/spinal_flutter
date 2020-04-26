@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:spinal_flutter/components/rounded_button.dart';
-import 'package:spinal_flutter/constants.dart';
+import 'package:spinal_flutter/widgets/rounded_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:flutter_auth_buttons/flutter_auth_buttons.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:spinal_flutter/screens/login_screen.dart';
-import 'package:spinal_flutter/screens/main_inventory_screen.dart';
 import 'package:spinal_flutter/services/auth.dart';
 import 'package:spinal_flutter/validators.dart';
 
@@ -73,21 +70,27 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               children: [
                 TextFormField(
                   decoration: InputDecoration(
-                      labelText: 'First Name*', hintText: "John"),
+                    labelText: 'First Name*',
+                    hintText: "John",
+                  ),
                   validator: (value) =>
                       value.isEmpty ? 'First Name can\'t be empty' : null,
                   onSaved: (value) => _first = value.trim(),
                 ),
                 TextFormField(
-                  decoration:
-                      InputDecoration(labelText: 'Last Name*', hintText: "Doe"),
+                  decoration: InputDecoration(
+                    labelText: 'Last Name*',
+                    hintText: "Doe",
+                  ),
                   validator: (value) =>
                       value.isEmpty ? 'Last Name can\'t be empty' : null,
                   onSaved: (value) => _last = value.trim(),
                 ),
                 TextFormField(
                   decoration: InputDecoration(
-                      labelText: 'Email*', hintText: "john.doe@gmail.com"),
+                    labelText: 'Email*',
+                    hintText: "john.doe@gmail.com",
+                  ),
                   keyboardType: TextInputType.emailAddress,
                   validator: emailValidator,
                   onSaved: (value) => _email = value.trim(),

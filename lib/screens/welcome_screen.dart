@@ -3,7 +3,7 @@ import 'package:spinal_flutter/constants.dart';
 import 'login_screen.dart';
 import 'registration_screen.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
-import 'package:spinal_flutter/components/rounded_button.dart';
+import 'package:spinal_flutter/widgets/rounded_button.dart';
 
 class WelcomeScreen extends StatefulWidget {
   static const String id = 'welcome_screen';
