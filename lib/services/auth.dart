@@ -21,17 +21,19 @@ class AuthService with ChangeNotifier {
   }
 
   // wrapping the firebase calls
-  Future createUser(
-      {String firstName,
-      String lastName,
-      String email,
-      String password}) async {
+  Future createUser({String email, String password}) async {
     var r = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password);
 
     var u = r.user;
+    try {
+      await u.sendEmailVerification();
+    } catch (e) {
+      print("An error occured while trying to send email verification");
+      print(e.toString());
+    }
     UserUpdateInfo info = UserUpdateInfo();
-    info.displayName = '$firstName $lastName';
+//    info.displayName = '$firstName $lastName';
     return await u.updateProfile(info);
   }
 
@@ -56,6 +58,7 @@ class AuthService with ChangeNotifier {
     final GoogleSignIn googleSignIn = GoogleSignIn();
     // google sign in pops up and waits for user to choose account
     final GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
+
     final GoogleSignInAuthentication googleSignInAuthentication =
         await googleSignInAccount.authentication;
 

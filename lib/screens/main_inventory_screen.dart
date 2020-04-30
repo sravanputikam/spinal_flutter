@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:spinal_flutter/services/auth.dart';
 import 'package:spinal_flutter/widgets/customDrawer.dart';
@@ -17,6 +18,7 @@ import 'package:spinal_flutter/screens/item_information.dart';
 import 'dart:async' show Future;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:spinal_flutter/widgets/rounded_button.dart';
+import 'package:rxdart/subjects.dart';
 
 import '../validators.dart';
 
@@ -25,6 +27,31 @@ Future<String> loadAsset() async {
 }
 
 FirebaseUser user;
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+NotificationAppLaunchDetails notificationAppLaunchDetails;
+
+class ReceivedNotification {
+  final int id;
+  final String title;
+  final String body;
+  final String payload;
+
+  ReceivedNotification({
+    @required this.id,
+    @required this.title,
+    @required this.body,
+    @required this.payload,
+  });
+}
+
+final BehaviorSubject<ReceivedNotification> didReceiveLocalNotificationSubject =
+    BehaviorSubject<ReceivedNotification>();
+
+final BehaviorSubject<String> selectNotificationSubject =
+    BehaviorSubject<String>();
 
 class InventoryScreen extends StatefulWidget {
   static const String id = 'inventory_screen';
@@ -63,14 +90,22 @@ class _InventoryScreenState extends State<InventoryScreen>
   bool selected = false;
   TextEditingController searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+  bool empty = false;
 
   List<Widget> actions = List();
   Animation animation;
   List<Item> _itemsList;
   List _allergenList = List();
   String searchItem;
+  String filtering = 'initialFilter';
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   static int notifyCount = 0;
+  var _items = List<Item>();
+
+  String quantity;
+  String servings;
+  String servingsLeft;
+  String quantityLeft;
 
   _showItemDialog(List data, String message, int reason) {
     showDialog<String>(
@@ -82,6 +117,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                 borderRadius: BorderRadius.circular(20.0)),
             child: Container(
               height: mediaQuery.size.height - 100.0,
+              padding: EdgeInsets.only(top: 10.0),
               width: 350.0,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -113,8 +149,8 @@ class _InventoryScreenState extends State<InventoryScreen>
                           height: 0.0,
                           width: 0.0,
                         ),
-                  buildExpandedGridView(data,
-                      type: 'allergy', imageHeight: 100.0, imageWidth: 100.0),
+                  buildExpandedGridView(reason == 2 ? List<Item>() : data,
+                      filter: 'allergy', imageHeight: 100.0, imageWidth: 100.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
@@ -144,7 +180,7 @@ class _InventoryScreenState extends State<InventoryScreen>
     if (type == 'Allergy') {
       dynamic allergies = message['data']['allergy'];
       allergies = allergies.split(',');
-      _showItemDialog(allergies, "Allergen Alert", 2);
+      _showItemDialog(allergies, "Allergy Alert", 2);
 //            _alertUser(allergies, type);
     } else {
       dynamic expiry_items = message['data']['expiry'];
@@ -162,6 +198,22 @@ class _InventoryScreenState extends State<InventoryScreen>
     userUID = widget.currentUser.uid;
     _database =
         FirebaseDatabase.instance.reference().child('Users').child(userUID);
+    DatabaseReference itemDatabase;
+    itemDatabase = _database.child('Items');
+
+    _database.child('Items').once().then((DataSnapshot snapshot) async {
+      Map<dynamic, dynamic> values = snapshot.value;
+      print("GetLost");
+//      print(values.length);
+      try {
+        if (values.length == 0) {
+          empty = true;
+        }
+      } catch (e) {
+        empty = true;
+      }
+    });
+
     _database.keepSynced(true);
     _onAddedSubscription =
         _database.child('Items').onChildAdded.listen((onEntryAdded));
@@ -202,6 +254,35 @@ class _InventoryScreenState extends State<InventoryScreen>
       print(_homeScreenText);
     });
     _firebaseMessaging.subscribeToTopic("AllergyAlert");
+
+    WidgetsFlutterBinding.ensureInitialized();
+//    notificationAppLaunchDetails =
+//        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+
+    var initializationSettingsAndroid =
+        AndroidInitializationSettings('ic_launcher');
+    var initializationSettingsIOS = IOSInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+        onDidReceiveLocalNotification:
+            (int id, String title, String body, String payload) async {
+          didReceiveLocalNotificationSubject.add(ReceivedNotification(
+              id: id, title: title, body: body, payload: payload));
+        });
+    var initializationSettings = InitializationSettings(
+        initializationSettingsAndroid, initializationSettingsIOS);
+    flutterLocalNotificationsPlugin.initialize(initializationSettings,
+        onSelectNotification: (String payload) async {
+      if (payload != null) {
+        debugPrint('notification payload: ' + payload);
+      }
+      List<Item> expiryItems = List<Item>();
+      _showItemDialog(expiryItems, "Item Expiring in a Week", 1);
+
+//      selectNotificationSubject.add(payload);
+    });
+
     actions = checkSelected();
   }
 
@@ -247,14 +328,6 @@ class _InventoryScreenState extends State<InventoryScreen>
     });
   }
 
-//  addNewItem(String todoItem) {
-//    if (todoItem.length > 0) {
-//      Item todo = new Item(todoItem.toString(), widget.userId, false);
-//      _database.reference().child("todo").push().set(todo.toJson());
-//    }
-//  }
-//
-
   deleteItem(String itemName, int index) {
     _database.child(itemName).remove().then((_) {
       print("Delete $itemName successful");
@@ -262,20 +335,6 @@ class _InventoryScreenState extends State<InventoryScreen>
         _itemsList.removeAt(index);
       });
     });
-  }
-
-  Future<List> search(String search) async {
-    await Future.delayed(Duration(seconds: 2));
-    List<DummyItem> dItems = [];
-    if (_itemsList.isNotEmpty) {
-      for (int i = 0; i < _itemsList.length; i++) {
-        if (_itemsList[i].itemName.contains(search)) {
-          dItems.add(DummyItem(_itemsList[i].itemName, _itemsList[i].image,
-              _itemsList[i].expiry));
-        }
-      }
-    }
-    return dItems;
   }
 
   checkSelected() {
@@ -332,6 +391,75 @@ class _InventoryScreenState extends State<InventoryScreen>
     return action;
   }
 
+  filterSearchResults(String query, String filter) {
+    List<Item> dummySearchList = _itemsList;
+    print(dummySearchList.length);
+    if (query.length > 1 && filter == 'search') {
+      print(query);
+      List<Item> dummyListData = List<Item>();
+      dummySearchList.forEach((item) {
+        print(item.itemName);
+        if (item.itemName.toLowerCase().contains(query.toLowerCase()) == true) {
+          dummyListData.add(item);
+        }
+      });
+      setState(() {
+        print(dummyListData.length);
+        _items.clear();
+        _items.addAll(dummyListData);
+      });
+      return;
+    } else if (filter == 'A to Z') {
+//      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
+      dummySearchList.sort((a, b) =>
+          a.itemName.toLowerCase().compareTo(b.itemName.toLowerCase()));
+      print('Helloo filtering');
+      setState(() {
+        filtering = 'A to Z';
+        _items.clear();
+        _items.addAll(dummySearchList);
+      });
+      return;
+    } else if (filter == 'Z to A') {
+//      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
+      dummySearchList.sort((a, b) =>
+          b.itemName.toLowerCase().compareTo(a.itemName.toLowerCase()));
+      print('Helloo filtering');
+      setState(() {
+        filtering = 'Z to A';
+        _items.clear();
+        _items.addAll(dummySearchList);
+      });
+      return;
+    } else if (filter == 'expired') {
+      filtering = 'expired';
+      print(dummySearchList.length);
+      dummySearchList.removeWhere((item) => item.daysLeft > 0);
+      dummySearchList.removeWhere((item) => item.quantity == '0');
+      setState(() {
+        _items.clear();
+        _items.addAll(dummySearchList);
+      });
+      return;
+    } else if (filter == 'Expiry Date') {
+      filtering = 'Expiry Date';
+      dummySearchList.sort((a, b) => a.daysLeft.compareTo(b.daysLeft));
+      setState(() {
+        _items.clear();
+        _items.addAll(dummySearchList);
+      });
+      return;
+    } else {
+      filtering = 'current';
+      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
+      setState(() {
+        _items.clear();
+        _items.addAll(dummySearchList);
+      });
+      return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -341,11 +469,14 @@ class _InventoryScreenState extends State<InventoryScreen>
         actions: actions,
         elevation: 0.0,
         centerTitle: true,
-        title: Text(
-          'Inventory',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20.0,
+        title: Hero(
+          tag: 'titleTage',
+          child: Text(
+            'SPINAL',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22.0,
+            ),
           ),
         ),
       ),
@@ -362,6 +493,7 @@ class _InventoryScreenState extends State<InventoryScreen>
             InventorySelector(),
             Container(
               width: mediaQuery.size.width,
+              padding: EdgeInsets.only(top: 5.0),
               height: 50.0,
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -369,30 +501,38 @@ class _InventoryScreenState extends State<InventoryScreen>
                     topLeft: Radius.circular(25.0),
                     topRight: Radius.circular(25.0)),
               ),
-              child: TextField(
-                showCursor: true,
-                controller: searchController,
-                focusNode: _searchFocus,
-                decoration: InputDecoration(
-                  hasFloatingPlaceholder: false,
-                  labelText: "Search",
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(
+                    child: TextField(
+                      showCursor: true,
+                      controller: searchController,
+                      focusNode: _searchFocus,
+                      decoration: InputDecoration(
+                        hasFloatingPlaceholder: false,
+                        labelText: "Search",
 //                  hintText: "Search Current Inventory",
-                  prefixIcon: Icon(Icons.search),
-                  suffixIcon: PopupFilterButton(),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(25.0)),
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(25.0)),
+                        ),
+                      ),
+                      onEditingComplete: () {
+                        print(searchController.value);
+                      },
+                      onSubmitted: (text) {
+                        filterSearchResults(text, 'search');
+                        _searchFocus.unfocus();
+                      },
+                    ),
+                    width: 300.0,
                   ),
-                ),
-                onEditingComplete: () {
-                  print(searchController.value);
-                },
-                onSubmitted: (text) {
-                  print(text);
-                  _searchFocus.unfocus();
-                },
+                  popUpFilterButton(),
+                ],
               ),
             ),
-            buildExpandedGridView(_itemsList)
+            buildExpandedGridView(_items, filter: filtering)
           ],
         ),
       ),
@@ -407,54 +547,100 @@ class _InventoryScreenState extends State<InventoryScreen>
     );
   }
 
-  buildExpandedGridView(dynamic itemsList,
-      {type = 'main', imageWidth = 150.0, imageHeight = 150.0}) {
+  buildExpandedGridView(List<Item> itemsList,
+      {filter = 'initialFilter', imageWidth = 150.0, imageHeight = 150.0}) {
+    if (itemsList.length == 0) {
+      itemsList.addAll(_itemsList);
+    }
     List<Item> dummy = List<Item>();
-    if (type == 'allergy') {
+    if (filter == 'allergy') {
       for (int i = 0; i < _itemsList.length; i++) {
-        for (int j = 0; j < itemsList.length; j++) {
-          String itemName = itemsList[j];
-          if (_itemsList[i].itemName.contains(itemName) == true) {
+        for (int j = 0; j < _allergenList.length; j++) {
+          String allergenName = _allergenList[j];
+          if (_itemsList[i].ingredients.contains(allergenName) == true &&
+              _itemsList[i].daysLeft > 0) {
             dummy.add(_itemsList[i]);
           }
         }
       }
-      itemsList = dummy;
+      itemsList.clear();
+      itemsList.addAll(dummy);
+    } else if (filter == 'initialFilter') {
+      itemsList.removeWhere((item) => item.daysLeft <= 0);
+    } else if (filter == 'expiryAlert') {
+      dummy.addAll(_itemsList);
+      dummy.removeWhere((item) => item.daysLeft > 8);
+      dummy.removeWhere((item) => item.daysLeft < 0);
+      itemsList.clear();
+      itemsList.addAll(dummy);
     }
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.only(top: 10.0),
-        color: Colors.white,
-        child: itemsList.length == 0
-            ? showCircularProgress(true)
-            : GridView.builder(
-                itemCount: itemsList.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2),
-                itemBuilder: (BuildContext context, int index) {
-                  dynamic item = itemsList[index];
-                  return buildGridTile(index, item, imageWidth, imageHeight);
-                },
-              ),
-      ),
-    );
+    if (empty == false && _itemsList.length > 0) {
+      return Expanded(
+        child: Container(
+          padding: EdgeInsets.only(top: 10.0),
+          color: Colors.white,
+          child: itemsList.length == 0
+              ? showCircularProgress(true)
+              : GridView.builder(
+                  itemCount: itemsList.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2),
+                  itemBuilder: (BuildContext context, int index) {
+                    dynamic item = itemsList[index];
+                    return buildGridTile(
+                        filter, index, item, imageWidth, imageHeight);
+                  },
+                ),
+        ),
+      );
+    } else {
+      return Expanded(
+        child: Container(
+          padding: EdgeInsets.only(left: 5.0, right: 5.0),
+          color: Colors.white,
+          child: Image.asset(
+            'images/empty_fridge.png',
+          ),
+        ),
+      );
+    }
   }
 
-  buildGridTile(index, dynamic item, imageWidth, imageHeight) {
+  buildGridTile(type, index, Item item, imageWidth, imageHeight) {
     Uint8List image = base64.decode(item.image);
     String itemName = item.itemName;
     bool checkAllergen = true;
     _allergenList.forEach((allergen) {
       if (item.ingredients.contains(allergen)) checkAllergen = false;
     });
+    String expirationImage;
+
+    if (item.daysLeft <= 0)
+      expirationImage = 'images/expired_icon.png';
+    else if (item.daysLeft <= 7 && item.daysLeft >= 1)
+      expirationImage = 'images/red_clock.png';
+    else if (7 < item.daysLeft && item.daysLeft <= 14)
+      expirationImage = 'images/yellow_clock.png';
+    else
+      expirationImage = 'images/green_clock.png';
     return Container(
       padding: EdgeInsets.all(5.0),
       child: GestureDetector(
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          String left = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ItemInformation(item)),
+            MaterialPageRoute(
+                builder: (context) => ItemInformation(item, _allergenList,
+                    _database, quantityLeft, servingsLeft)),
           );
+          if (left == '0') {
+            setState(() {
+              int mainIndex =
+                  _itemsList.indexWhere((element) => item == element);
+              _itemsList[mainIndex].daysLeft = 0;
+              filtering = 'initialFilter';
+            });
+          }
         },
         onLongPress: () {
 //          deleteItem(itemName, index);
@@ -468,7 +654,12 @@ class _InventoryScreenState extends State<InventoryScreen>
               child: Stack(children: [
                 Center(
                   child: Container(
-                    child: Center(child: Image.memory(image)),
+                    child: Center(
+                        child: Image.memory(
+                      image,
+                      scale: 0.75,
+                      filterQuality: FilterQuality.low,
+                    )),
                     width: imageWidth,
                     height: imageHeight,
                   ),
@@ -482,7 +673,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                         width: 10.0,
                       ),
                       Image.asset(
-                        'images/yellow_clock.png',
+                        expirationImage,
                         height: 20.0,
                         width: 20.0,
                       ),
@@ -524,32 +715,29 @@ class _InventoryScreenState extends State<InventoryScreen>
       ),
     );
   }
-}
 
-class PopupFilterButton extends StatelessWidget {
-  const PopupFilterButton({
-    Key key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
+  popUpFilterButton() {
     return PopupMenuButton(
       padding: EdgeInsets.all(0.0),
-      onSelected: (add result) {
-        print(result);
+      onSelected: (result) {
+        filterSearchResults('', result);
       },
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<add>>[
-        const PopupMenuItem<add>(
-          value: add.barcode,
+      itemBuilder: (BuildContext context) => <PopupMenuEntry>[
+        const PopupMenuItem(
+          value: 'Expiry Date',
           child: Text('Expiry Date'),
         ),
-        const PopupMenuItem<add>(
-          value: add.camera,
+        const PopupMenuItem(
+          value: 'A to Z',
           child: Text('A to Z'),
         ),
-        const PopupMenuItem<add>(
-          value: add.camera,
+        const PopupMenuItem(
+          value: 'Z to A',
           child: Text('Z to A'),
+        ),
+        const PopupMenuItem(
+          value: 'expired',
+          child: Text('expired'),
         )
       ],
       icon: IconButton(

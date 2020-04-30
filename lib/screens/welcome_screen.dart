@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_login/flutter_login.dart';
 import 'package:spinal_flutter/constants.dart';
 import 'login_screen.dart';
+import 'login_screen2.dart';
 import 'registration_screen.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:spinal_flutter/widgets/rounded_button.dart';
@@ -44,9 +47,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+//          mainAxisAlignment: MainAxisAlignment.,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            SizedBox(
+              height: 100.0,
+            ),
             Row(
               children: <Widget>[
                 Hero(
@@ -70,20 +76,41 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             SizedBox(
               height: 48.0,
             ),
-            RoundedButton(
-              title: 'Log In',
-              colour: Colors.lightBlueAccent,
-              onPressed: () {
-                Navigator.pushNamed(context, LoginScreen.id);
-              },
+            Container(
+              child: Image.asset('images/splash2.png'),
             ),
-            RoundedButton(
-              title: 'Register',
-              colour: Colors.blueAccent,
-              onPressed: () {
-                Navigator.pushNamed(context, RegistrationScreen.id);
-              },
+            SizedBox(
+              height: 75.0,
             ),
+            RaisedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, LoginScreen2.id);
+              },
+              textColor: Colors.white,
+              color: Colors.redAccent,
+              elevation: 5.0,
+              padding: EdgeInsets.all(10.0),
+              child: Text(
+                'Get Started',
+                style: TextStyle(
+                  fontSize: 20.0,
+                ),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(40.0),
+              ),
+            ),
+            SizedBox(
+              height: 20.0,
+            ),
+            Container(
+              padding: EdgeInsets.only(left: 30.0, right: 30.0),
+              child: Text(
+                kSignUpTerms,
+                style: TextStyle(color: Colors.grey, fontSize: 10.0),
+                textAlign: TextAlign.center,
+              ),
+            )
           ],
         ),
       ),

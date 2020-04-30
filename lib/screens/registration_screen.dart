@@ -124,10 +124,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                   context,
                                   listen: false)
                               .createUser(
-                                  email: _email,
-                                  password: _password,
-                                  firstName: _first,
-                                  lastName: _last);
+                            email: _email,
+                            password: _password,
+                          );
+
                           setState(() {
                             _isLoading = false;
                           });

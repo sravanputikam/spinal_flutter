@@ -16,6 +16,9 @@ const kSendButtonTextStyle = TextStyle(
   fontSize: 18.0,
 );
 
+const kSignUpTerms =
+    "By clicking Sign up or Continue with Google, you agree to our Terms and Conditions and Privacy Statement.";
+
 const kMessageTextFieldDecoration = InputDecoration(
   contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
   hintText: 'Type your message here...',

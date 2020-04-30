@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:spinal_flutter/screens/login_screen2.dart';
 import 'package:spinal_flutter/screens/welcome_screen.dart';
 import 'package:spinal_flutter/screens/login_screen.dart';
 import 'package:spinal_flutter/screens/registration_screen.dart';
@@ -7,16 +9,17 @@ import 'package:spinal_flutter/screens/main_inventory_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:spinal_flutter/services/auth.dart';
-import 'package:custom_splash/custom_splash.dart';
 
-void main() => runApp(
-      ChangeNotifierProvider<AuthService>(
-        child: MyApp(),
-        create: (BuildContext context) {
-          return AuthService();
-        },
-      ),
-    );
+Future<void> main() async {
+  runApp(
+    ChangeNotifierProvider<AuthService>(
+      child: MyApp(),
+      create: (BuildContext context) {
+        return AuthService();
+      },
+    ),
+  );
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -44,6 +47,7 @@ class MyApp extends StatelessWidget {
       routes: {
         WelcomeScreen.id: (context) => WelcomeScreen(),
         LoginScreen.id: (context) => LoginScreen(),
+        LoginScreen2.id: (context) => LoginScreen2(),
         RegistrationScreen.id: (context) => RegistrationScreen(),
 //          InventoryScreen.id: (context) => InventoryScreen(snapshot.data),
       },
@@ -65,7 +69,11 @@ class MyApp extends StatelessWidget {
           // `HomePage` so we can display the user email in welcome msg     ⇐ NEW
           final bool loggedIn = snapshot.hasData;
           print("hello");
-          return loggedIn ? InventoryScreen(snapshot.data) : WelcomeScreen();
+          if (loggedIn && snapshot.data.isEmailVerified) {
+            return InventoryScreen(snapshot.data);
+          } else
+            return WelcomeScreen();
+//          return loggedIn ? InventoryScreen(snapshot.data) : WelcomeScreen();
         } else {
           print(snapshot.error);
           print('hi');
@@ -82,8 +90,8 @@ class LoadingCircle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      child: Image.asset('images/splash.png'),
-      alignment: Alignment(0.0, 0.0),
+//      child: Image.asset('images/splash.png'),
+//      alignment: Alignment(0.0, 0.0),
     );
   }
 }

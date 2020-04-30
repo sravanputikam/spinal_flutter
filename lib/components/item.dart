@@ -1,4 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:spinal_flutter/services/database_crud.dart';
 
 class Item {
   String ingredients;
@@ -10,6 +11,7 @@ class Item {
   dynamic expiry;
   String key;
   String image;
+  int daysLeft;
   Item(this.userId);
 
   Item.fromSnapshot(DataSnapshot snapshot)
@@ -19,7 +21,8 @@ class Item {
         purchaseDate = snapshot.value['Purchase Date'],
         quantity = snapshot.value['Quantity'],
         itemName = snapshot.value["Item Name"],
-        ingredients = snapshot.value["Ingredients"];
+        ingredients = snapshot.value["Ingredients"],
+        daysLeft = calculateDifference(snapshot);
 
   toJson() {
     return {
@@ -30,6 +33,7 @@ class Item {
       'purchaseDate': purchaseDate,
       'quantity': quantity,
       "ingredients": ingredients,
+      "daysLeft": daysLeft
     };
   }
 }

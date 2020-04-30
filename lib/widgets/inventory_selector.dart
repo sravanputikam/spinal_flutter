@@ -5,9 +5,10 @@ class InventorySelector extends StatefulWidget {
   _InventorySelectorState createState() => _InventorySelectorState();
 }
 
+int selectedIndex = 0;
+
 class _InventorySelectorState extends State<InventorySelector> {
-  int selectedIndex = 0;
-  final List<String> categories = ['Current', 'Past'];
+  final List<String> categories = ['Inventory'];
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +34,7 @@ class _InventorySelectorState extends State<InventorySelector> {
                 categories[index],
                 style: TextStyle(
                   color: index == selectedIndex ? Colors.white : Colors.white60,
-                  fontSize: 18.0,
+                  fontSize: 20.0,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),

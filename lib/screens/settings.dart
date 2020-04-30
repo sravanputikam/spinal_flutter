@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spinal_flutter/services/notifications.dart';
 
 class Settings extends StatefulWidget {
   @override
@@ -11,6 +12,10 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   var _selected_repeat;
   var _selected_interval;
+  var _selected_time;
+  bool alertToggle = true;
+  final TimeOfDay selectedTime = TimeOfDay.now();
+  ValueChanged<TimeOfDay> selectTime;
   var _repeat = [
     'daily',
     'weekly on Monday',
@@ -23,17 +28,31 @@ class _SettingsState extends State<Settings> {
   ];
   var _intervals = ['week', 'month'];
   var _prefs;
-
+  bool loadedTime = false;
   setSharedPreferences() async {
     _prefs = await SharedPreferences.getInstance();
-    _selected_repeat = _prefs.getString('spinal_repeat') ?? 'daily';
-    _selected_interval = _prefs.getString('spinal_interval') ?? 'week';
+    setState(() {
+      _selected_repeat = _prefs.getString('spinal_repeat') ?? 'daily';
+      _selected_interval = _prefs.getString('spinal_interval') ?? 'week';
+      _selected_time = _prefs.getString('spinal_reminder_time');
+      if (_prefs.getString('spinal_reminder_time') == null) {
+        _selected_time = '9:30';
+        _prefs.setString('spinal_reminder_time', _selected_time);
+      }
+      loadedTime = true;
+    });
   }
 
   @override
   void initState() {
     super.initState();
     setSharedPreferences();
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay picked =
+        await showTimePicker(context: context, initialTime: selectedTime);
+    if (picked != null && picked != selectedTime) selectTime(picked);
   }
 
   showRepeatDialogue(BuildContext context) async {
@@ -178,6 +197,11 @@ class _SettingsState extends State<Settings> {
 
   @override
   Widget build(BuildContext context) {
+//    _prefs = SharedPreferences.getInstance();
+//    if (_prefs.getString('spinal_reminder_time') == null) {
+//      _selected_time = '9:30';
+//      _prefs.setString('spinal_reminder_time', _selected_time);
+//    }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -196,43 +220,38 @@ class _SettingsState extends State<Settings> {
             title: 'Notifications',
             tiles: [
               SettingsTile(
-                title: 'Set Time',
-                subtitle: 'Set the time of reminder',
+                title: 'Set Reminder Time',
+                subtitle:
+                    'Current: ${loadedTime ? _selected_time : '9:30 AM'} ',
                 leading: Icon(
                   Icons.timer,
                   size: 27.0,
                 ),
                 onTap: () async {
-                  Future<TimeOfDay> selectedTimeRTL = (await showTimePicker(
+                  TimeOfDay selectedTime = await showTimePicker(
+                    initialTime: TimeOfDay.now(),
                     context: context,
-                    initialTime: TimeOfDay(hour: 7, minute: 0),
-                    builder: (BuildContext context, Widget child) {
-                      return Directionality(
-                        textDirection: TextDirection.rtl,
-                        child: child,
-                      );
-                    },
-                  )) as Future<TimeOfDay>;
-                },
-              ),
-              SettingsTile(
-                title: 'Set Frequency',
-                subtitle: 'Set the frequency of reminder',
-                leading: Icon(
-                  Icons.repeat,
-                  size: 27.0,
-                ),
-                onTap: () async {
-                  showRepeatDialogue(context);
+                  );
+                  if (selectedTime != null) {
+                    await _prefs.setString(
+                        'spinal_reminder_time', selectedTime.format(context));
+                    setState(() {
+                      _selected_time = selectedTime.format(context);
+                      print(_selected_time);
+                    });
+                    showDailyAtTime(selectedTime);
+                  }
                 },
               ),
               SettingsTile.switchTile(
                 title: 'Alert',
-                subtitle: 'Alert new item added',
+                subtitle: 'Alert when allergen added',
                 leading: Icon(Icons.add_alert),
-                switchValue: true,
+                switchValue: alertToggle,
                 onToggle: (bool value) {
-                  setState(() {});
+                  setState(() {
+                    alertToggle = !alertToggle;
+                  });
                 },
               ),
             ],
@@ -240,7 +259,13 @@ class _SettingsState extends State<Settings> {
           SettingsSection(
             title: 'Account',
             tiles: [
-              SettingsTile(title: 'Phone number', leading: Icon(Icons.phone)),
+              SettingsTile(
+                title: 'Phone number',
+                leading: Icon(Icons.phone),
+                onTap: () async {
+                  await scheduleNotification();
+                },
+              ),
               SettingsTile(title: 'Email', leading: Icon(Icons.email)),
               SettingsTile(title: 'Sign out', leading: Icon(Icons.exit_to_app)),
             ],
