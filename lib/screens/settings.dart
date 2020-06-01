@@ -220,9 +220,9 @@ class _SettingsState extends State<Settings> {
             title: 'Notifications',
             tiles: [
               SettingsTile(
-                title: 'Set Reminder Time',
+                title: 'Set Daily Reminder Time',
                 subtitle:
-                    'Current: ${loadedTime ? _selected_time : '9:30 AM'} ',
+                    'Current: ${loadedTime ? _selected_time : '9:30 AM'} AM',
                 leading: Icon(
                   Icons.timer,
                   size: 27.0,

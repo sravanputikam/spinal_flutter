@@ -54,10 +54,10 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter.
-flutter_native_splash:
-  image: images/splash.png
-  color: "#ffffff"
-  fill: false
+#flutter_native_splash:
+#  image: images/splash.png
+#  color: "#ffffff"
+#  fill: false
 
 flutter:
   uses-material-design: true

@@ -359,14 +359,16 @@ class _ItemInformationState extends State<ItemInformation>
           ),
         ],
       ),
-      Wrap(
-//        mainAxisAlignment: MainAxisAlignment.start,
-        runAlignment: WrapAlignment.start,
+      Row(
         children: <Widget>[
-          Text(
-            'Serving Size: ${nutrients['Serving Size']} ${nutrients['Serving Unit']}',
-            style: TextStyle(fontSize: 17),
-            textAlign: TextAlign.left,
+          Container(
+//            width: MediaQuery.of(context).size.width,
+//            padding: EdgeInsets.only(right: 200.0),
+            child: Text(
+              'Serving Size: ${nutrients['Serving Size']} ${nutrients['Serving Unit']}',
+              style: TextStyle(fontSize: 17),
+              textAlign: TextAlign.left,
+            ),
           ),
         ],
       ),

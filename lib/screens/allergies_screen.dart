@@ -276,7 +276,8 @@ class _AllergyScreen extends State<AllergyScreen> {
                         icon: Icon(Icons.arrow_back),
                         iconSize: 30.0,
                         color: Colors.white,
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () =>
+                            Navigator.of(context).pop(_allergenList),
                       ),
                     ],
                   ),

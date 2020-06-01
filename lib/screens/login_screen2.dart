@@ -29,7 +29,7 @@ class _LoginScreen2State extends State<LoginScreen2> {
         if (result.isEmailVerified) {
           Navigator.of(context).pop();
         } else {
-          await result.sendEmailVerification();
+//          await result.sendEmailVerification();
           return 'Email Not Verified';
         }
 //        Navigator.of(context).pop();
@@ -60,7 +60,9 @@ class _LoginScreen2State extends State<LoginScreen2> {
           Navigator.of(context).pop();
           return null;
         } catch (e) {
-          return "An error occured while trying to send email verification";
+          Navigator.of(context).pop();
+          return null;
+//          return "An error occured while trying to send email verification";
 //          print(e.code);
         }
       } on AuthException catch (error) {
@@ -102,7 +104,6 @@ class _LoginScreen2State extends State<LoginScreen2> {
             title: 'SPINAL',
             logoTag: 'logoTag',
             titleTag: 'titleTag',
-
 //        logo: 'images/google_logo.png',
             onLogin: (loginData) {
               return _loginUser(loginData);
@@ -114,6 +115,10 @@ class _LoginScreen2State extends State<LoginScreen2> {
             onRecoverPassword: (email) {
               return _recoverPassword(email);
             },
+            messages: LoginMessages(
+              recoverPasswordDescription:
+                  'A link for password reset will be sent to your email address',
+            ),
           ),
           Positioned(
             top: MediaQuery.of(context).size.height / 1.35,
@@ -156,7 +161,15 @@ class _LoginScreen2State extends State<LoginScreen2> {
                                 listen: false)
                             .signInWithGoogle();
                         print(result);
-                        Navigator.of(context).pop();
+                        try {
+                          await result.sendEmailVerification();
+                          Navigator.of(context).pop();
+                          return null;
+                        } catch (e) {
+                          print(
+                              "An error occured while trying to send email verification");
+                        }
+//                        Navigator.of(context).pop();
                       } catch (e) {
                         print(e.toString());
                       }

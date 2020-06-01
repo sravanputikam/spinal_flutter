@@ -108,6 +108,21 @@ class _InventoryScreenState extends State<InventoryScreen>
   String quantityLeft;
 
   _showItemDialog(List data, String message, int reason) {
+    Set<String> dummy = Set<String>();
+    if (reason == 2) {
+      for (int i = 0; i < _itemsList.length; i++) {
+        for (int j = 0; j < _allergenList.length; j++) {
+          String allergenName = _allergenList[j];
+          if (_itemsList[i].ingredients.contains(allergenName) == true &&
+              _itemsList[i].daysLeft > 0) {
+            dummy.add(allergenName);
+          }
+        }
+      }
+    }
+    if (reason == 2 && dummy.length == 0) {
+      return;
+    }
     showDialog<String>(
         context: context,
         builder: (BuildContext context) {
@@ -136,7 +151,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                       ? Center(
                           child: Container(
                             child: Text(
-                              'Items below contain: ${data.toString()}',
+                              'Item(s) below contain: ${dummy.toString()}',
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 15.0,
@@ -149,8 +164,10 @@ class _InventoryScreenState extends State<InventoryScreen>
                           height: 0.0,
                           width: 0.0,
                         ),
-                  buildExpandedGridView(reason == 2 ? List<Item>() : data,
-                      filter: 'allergy', imageHeight: 100.0, imageWidth: 100.0),
+                  buildExpandedGridView(List<Item>(),
+                      filter: reason == 2 ? 'allergy' : 'expiryAlert',
+                      imageHeight: 100.0,
+                      imageWidth: 100.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
@@ -196,11 +213,12 @@ class _InventoryScreenState extends State<InventoryScreen>
     _itemsList = new List();
     controllerGrid.addListener(scheduleRebuild);
     userUID = widget.currentUser.uid;
-    _database =
-        FirebaseDatabase.instance.reference().child('Users').child(userUID);
-    DatabaseReference itemDatabase;
-    itemDatabase = _database.child('Items');
-
+    try {
+      _database =
+          FirebaseDatabase.instance.reference().child('Users').child(userUID);
+      DatabaseReference itemDatabase;
+      itemDatabase = _database.child('Items');
+    } catch (e) {}
     _database.child('Items').once().then((DataSnapshot snapshot) async {
       Map<dynamic, dynamic> values = snapshot.value;
       print("GetLost");
@@ -298,11 +316,12 @@ class _InventoryScreenState extends State<InventoryScreen>
   }
 
   onEntryAdded(Event event) {
-    if (event.snapshot.key != 'Allergies') {
-      setState(() {
-        _itemsList.add(Item.fromSnapshot(event.snapshot));
-      });
-    }
+    setState(() {
+      _itemsList.add(Item.fromSnapshot(event.snapshot));
+      _items.clear();
+      _items.addAll(_itemsList);
+      filtering = 'initialFilter';
+    });
   }
 
   onEntryRemoved(Event event) {
@@ -311,6 +330,8 @@ class _InventoryScreenState extends State<InventoryScreen>
       for (int i = 0; i < _itemsList.length; i++) {
         if (_itemsList[i].itemName == item) _itemsList.removeAt(i);
       }
+      _items.clear();
+      _items.addAll(_itemsList);
     });
   }
 
@@ -333,6 +354,8 @@ class _InventoryScreenState extends State<InventoryScreen>
       print("Delete $itemName successful");
       setState(() {
         _itemsList.removeAt(index);
+        _items.clear();
+        _items.addAll(_itemsList);
       });
     });
   }
@@ -392,7 +415,8 @@ class _InventoryScreenState extends State<InventoryScreen>
   }
 
   filterSearchResults(String query, String filter) {
-    List<Item> dummySearchList = _itemsList;
+    List<Item> dummySearchList = List<Item>();
+    dummySearchList.addAll(_itemsList);
     print(dummySearchList.length);
     if (query.length > 1 && filter == 'search') {
       print(query);
@@ -410,7 +434,7 @@ class _InventoryScreenState extends State<InventoryScreen>
       });
       return;
     } else if (filter == 'A to Z') {
-//      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
+      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
       dummySearchList.sort((a, b) =>
           a.itemName.toLowerCase().compareTo(b.itemName.toLowerCase()));
       print('Helloo filtering');
@@ -421,7 +445,7 @@ class _InventoryScreenState extends State<InventoryScreen>
       });
       return;
     } else if (filter == 'Z to A') {
-//      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
+      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
       dummySearchList.sort((a, b) =>
           b.itemName.toLowerCase().compareTo(a.itemName.toLowerCase()));
       print('Helloo filtering');
@@ -431,8 +455,8 @@ class _InventoryScreenState extends State<InventoryScreen>
         _items.addAll(dummySearchList);
       });
       return;
-    } else if (filter == 'expired') {
-      filtering = 'expired';
+    } else if (filter == 'past') {
+      filtering = 'past';
       print(dummySearchList.length);
       dummySearchList.removeWhere((item) => item.daysLeft > 0);
       dummySearchList.removeWhere((item) => item.quantity == '0');
@@ -443,6 +467,7 @@ class _InventoryScreenState extends State<InventoryScreen>
       return;
     } else if (filter == 'Expiry Date') {
       filtering = 'Expiry Date';
+      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
       dummySearchList.sort((a, b) => a.daysLeft.compareTo(b.daysLeft));
       setState(() {
         _items.clear();
@@ -450,11 +475,14 @@ class _InventoryScreenState extends State<InventoryScreen>
       });
       return;
     } else {
-      filtering = 'current';
-      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
+      if (query == '0' && filter != 'Current') {
+        return;
+      }
+      filtering = 'initialFilter';
+//      dummySearchList.removeWhere((item) => item.daysLeft <= 0);
       setState(() {
         _items.clear();
-        _items.addAll(dummySearchList);
+        _items.addAll(_itemsList);
       });
       return;
     }
@@ -574,7 +602,10 @@ class _InventoryScreenState extends State<InventoryScreen>
       itemsList.clear();
       itemsList.addAll(dummy);
     }
-    if (empty == false && _itemsList.length > 0) {
+    if (userUID != 'a1ah0KnneZg75X0dSJSXBdTtCFr1') {
+      return emptyWidget();
+    }
+    if (empty == false || _itemsList.length > 0) {
       return Expanded(
         child: Container(
           padding: EdgeInsets.only(top: 10.0),
@@ -594,16 +625,20 @@ class _InventoryScreenState extends State<InventoryScreen>
         ),
       );
     } else {
-      return Expanded(
-        child: Container(
-          padding: EdgeInsets.only(left: 5.0, right: 5.0),
-          color: Colors.white,
-          child: Image.asset(
-            'images/empty_fridge.png',
-          ),
-        ),
-      );
+      return emptyWidget();
     }
+  }
+
+  Expanded emptyWidget() {
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.only(left: 5.0, right: 5.0),
+        color: Colors.white,
+        child: Image.asset(
+          'images/empty_fridge.png',
+        ),
+      ),
+    );
   }
 
   buildGridTile(type, index, Item item, imageWidth, imageHeight) {
@@ -720,9 +755,13 @@ class _InventoryScreenState extends State<InventoryScreen>
     return PopupMenuButton(
       padding: EdgeInsets.all(0.0),
       onSelected: (result) {
-        filterSearchResults('', result);
+        filterSearchResults('0', result);
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry>[
+        const PopupMenuItem(
+          value: 'Current',
+          child: Text('Current'),
+        ),
         const PopupMenuItem(
           value: 'Expiry Date',
           child: Text('Expiry Date'),
@@ -736,8 +775,8 @@ class _InventoryScreenState extends State<InventoryScreen>
           child: Text('Z to A'),
         ),
         const PopupMenuItem(
-          value: 'expired',
-          child: Text('expired'),
+          value: 'past',
+          child: Text('Past'),
         )
       ],
       icon: IconButton(
